@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>RVOL Scanner</title>
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+overflow:hidden;
+}
+.container{
+display:flex;
+height:100vh;
+}
+
+.left{
+width:13%;
+min-width:8%;
+max-width:50%;
+border-right:2px solid #0A374A;
+display:flex;
+flex-direction:column;
+height:100vh;
+}
+
+.right{
+flex:1;
+}
+
+#divider{
+width:3px;
+cursor:col-resize;
+background:#0A374A;
+transition:all 0.2s;
+}
+
+/* ✨ Hover glow */
+#divider:hover{
+background:#1E90FF;
+box-shadow:0 0 6px #1E90FF;
+}
+
+/* 🔥 Active drag glow */
+#divider.active{
+background:#00CFFF;
+box-shadow:0 0 10px #00CFFF;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+table-layout:fixed;
+}
+
+thead th{
+position:sticky;
+top:0px;
+background:#0A374A;
+color:white;
+z-index:10;
+text-align:left;
+}
+
+th,td{
+padding:5px 6px;  /* top-bottom 4px, left-right 6px */
+border-bottom:1px solid #0A374A;
+font-size:12px;
+white-space:nowrap;
+
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+
+tbody tr:hover{
+background:#B3DAFF;
+cursor:pointer;
+}
+
+.selected{
+background:#B3DAFF;
+}
+
+
+.favoriteRow{
+background:#FFF9C4; /* light yellow */
+}
+
+
+.favoriteRow.selected{
+background:#B3DAFF !important;
+}
+
+.sectionHeader{
+background:#f0f0f0;
+font-weight:bold;
+text-align:left;
+}
+
+.dividerRow td{
+padding:0;
+height:0px;
+border-top:3px solid #0A374A;
+background:none;
+}
+
+#status{
+position:sticky;
+top:0;
+z-index:20;
+padding:6px;
+font-size:12px;
+background:#0A374A;
+color:white;
+display:flex;
+align-items:center;
+gap:5px;
+}
+
+#themeBtn,#settingsBtn{
+font-size:14px;
+padding:2px 6px;
+cursor:pointer;
+border:none;
+border-radius:3px;
+}
+
+#contextMenu{
+position:absolute;
+display:none;
+background:#f9fbfb;
+border:1px solid #0A374A;
+border-radius:6px;
+box-shadow:0 4px 10px rgba(0,0,0,0.2);
+font-size:13px;
+min-width:180px;
+overflow:hidden;
+z-index:1000;
+}
+
+#contextMenu div{
+padding:10px 14px;
+cursor:pointer;
+background:#D5E3C8;
+transition:background 0.2s;
+}
+
+#contextMenu div:not(:last-child){
+border-bottom:1px solid #d2e6e3;
+}
+
+#contextMenu div:hover{
+background:#78D9FF;
+}
+
+#deleteOption{
+color:#d11a2a;
+font-weight:bold;
+}
+  
+#deleteOption{color:red;}
+
+/* SETTINGS MODAL DESIGN */
+
+#settingsPopup{
+position:fixed;
+display:none;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#ffffff;
+border-radius:8px;
+box-shadow:0 6px 20px rgba(0,0,0,0.3);
+width:300px;
+overflow:hidden;
+z-index:2000;
+}
+
+/* Header */
+.settingsHeader{
+background:#0A374A;
+color:white;
+padding:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:16px;
+}
+
+/* Body */
+.settingsBody{
+padding:15px;
+background:#f3f3f3;
+}
+
+.settingRow{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+font-size:14px;
+}
+
+.settingRow input[type="number"]{
+width:80px;
+padding:5px;
+font-size:14px;
+}
+
+.resetBtn{
+padding:6px 12px;
+border:1px solid black;
+background:white;
+cursor:pointer;
+}
+
+/* Footer */
+.settingsFooter{
+display:flex;
+justify-content:space-between;
+padding:15px;
+}
+
+.settingsFooter button{
+padding:10px 20px;
+border-radius:6px;
+cursor:pointer;
+border:none;
+font-size:14px;
+}
+
+#cancelSettings{
+background:white;
+border:2px solid #0A374A;
+color:#0A374A;
+}
+
+#saveSettingsBtn{
+background:#0A374A;
+color:white;
+}
+
+.tableWrapper{
+height:calc(100vh - 40px); /* status height adjust */
+overflow-y:auto;
+position:relative;
+}
+
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="left">
+
+<div id="status">
+<span id="updateText">Starting...</span>
+<button id="themeBtn" onclick="toggleTheme()">☀️</button>
+<button id="settingsBtn">⚙️</button>
+</div>
+
+<div class="tableWrapper">
+
+<table>
+<thead>
+<tr>
+<th style="width:45%" onclick="sortList('symbol')">Symbol</th>
+<th style="width:40%" onclick="sortList('time')">Time</th>
+<th style="width:15%" onclick="sortList('rvol')">RVOL</th>
+</tr>
+</thead>
+<tbody id="body"></tbody>
+</table>
+
+</div>
+
+</div>
+
+<!--DRAG DIVIDER -->
+<div id="divider"></div>
+
+<div class="right">
+<div id="chart" style="height:100%;width:100%;"></div>
+</div>
+
+</div>
+
+<div id="contextMenu">
+<div id="openTVOption">📄 Open TradingView</div>
+<div id="copyOption">📋 Copy Symbol</div>
+<div id="favOption">⭐ Add to Favorite</div>
+<div id="deleteOption">❌ Delete Symbol</div>
+</div>
+
+<div id="settingsPopup">
+
+<div class="settingsHeader">
+<span>Settings</span>
+<span id="closeSettings" style="cursor:pointer;">✖</span>
+</div>
+
+<div class="settingsBody">
+
+<div class="settingRow">
+<label>Min. Relative Volume</label>
+<input type="number" id="minRvolInput">
+</div>
+
+<div class="settingRow">
+<label>Sound Alert</label>
+<input type="checkbox" id="soundToggle">
+</div>
+
+<div class="settingRow">
+<label>Favorite Sound</label>
+<input type="checkbox" id="favSoundToggle">
+</div>
+
+<div class="settingRow">
+<button id="resetBtn" class="resetBtn">RESET (Clear All)</button>
+</div>
+
+</div>
+
+<div class="settingsFooter">
+<button id="cancelSettings">Cancel</button>
+<button id="saveSettingsBtn">Save</button>
+</div>
+
+</div>
+
+<audio id="alertSound">
+<source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg">
+</audio>
+
+<audio id="favAlertSound">
+<source src="https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg">
+</audio>
+
+<script>
+
+/* FIREBASE INIT */
+
+const firebaseConfig = {
+apiKey: "AIzaSyAwykQh11OnQrfLupJ6upB3DwcERVal044",
+authDomain: "rvol-e92cd.firebaseapp.com",
+databaseURL: "https://rvol-e92cd-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "rvol-e92cd",
+storageBucket: "rvol-e92cd.firebasestorage.app",
+messagingSenderId: "479312598684",
+appId: "1:479312598684:web:380d64346e5e58d1a4bf59",
+measurementId: "G-9FGKSK1CD6"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+/* ORIGINAL CODE */
+
+let symbols=[];
+let highRvolSymbols={};
+let widget=null;
+let selectedSymbol=null;
+let selectedIndex = -1;
+let sortedKeys = [];
+let currentTheme="light";
+let contextSymbol=null;
+let isMasterScanner=false;
+let wakeLock=null;
+let isDragging = false;
+let animationFrameId = null;
+let lastPercent = 13;
+
+let settings={ 
+sound:true, 
+minRvol:15,
+favSound:true
+};
+
+let favorites = [];
+let lastSoundTime = 0;
+let lastFavSoundTime = 0;
+
+async function enableWakeLock(){
+
+try{
+
+wakeLock = await navigator.wakeLock.request('screen');
+
+console.log("Wake Lock Active");
+
+wakeLock.addEventListener("release", () => {
+
+console.log("Wake Lock released");
+
+if(isMasterScanner){
+enableWakeLock();
+}
+
+});
+
+}catch(err){
+
+console.log("Wake Lock Failed", err);
+
+}
+
+}
+function saveList(){
+db.ref("scanner").set(highRvolSymbols);
+}
+
+async function loadList(){
+
+// ⭐ LOAD FAVORITES FROM FIREBASE
+db.ref("favorites").on("value",(snap)=>{
+favorites = snap.val() || [];
+render();
+});
+
+let firstLoad = true;
+
+db.ref("scanner").on("value",(snapshot)=>{
+
+let newData = snapshot.val() || {};
+
+if(!firstLoad){
+
+for(let s in newData){
+
+if(!highRvolSymbols[s]){
+
+// 🔔 SOUND FOR VIEWER + MASTER BOTH
+if(settings.sound){
+let now = Date.now();
+
+if(now - lastSoundTime > 2000){
+const sound=document.getElementById("alertSound");
+sound.currentTime=0;
+sound.play();
+lastSoundTime = now;
+}
+}
+
+}
+
+}
+
+}
+
+for(let k in newData){
+if(typeof newData[k] === "number"){
+newData[k] = { time: newData[k], rvol: 0 };
+}
+}
+highRvolSymbols = newData;
+
+render();
+
+firstLoad = false;
+
+});
+
+const s = localStorage.getItem("rvolSettings");
+if(s) settings = JSON.parse(s);
+
+}
+
+function saveSettings(){
+localStorage.setItem("rvolSettings", JSON.stringify(settings));
+}
+
+function formatTime(ts){
+const d = new Date(ts);
+
+const day = String(d.getDate()).padStart(2,'0');
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const month = months[d.getMonth()];
+
+const hours = String(d.getHours()).padStart(2,'0');
+const mins = String(d.getMinutes()).padStart(2,'0');
+
+return `${day}-${month}, ${hours}:${mins}`;
+}
+
+async function checkScannerLock(){
+
+const lockRef = db.ref("scannerLock");
+
+const result = await lockRef.transaction(current => {
+
+if(current === null || Date.now() - current > 900000){
+return Date.now();
+}
+
+return;
+
+});
+
+if(result.committed){
+
+isMasterScanner = true;
+
+console.log("MASTER SCANNER");
+
+document.getElementById("updateText").innerText = "Master Scanner";
+
+}else{
+
+console.log("VIEWER MODE");
+
+document.getElementById("updateText").innerText = "Viewer Mode";
+
+}
+
+}
+	
+document.getElementById("resetBtn").onclick=()=>{
+
+if(confirm("Reset Scanner ? All saved data will be cleared.")){
+
+db.ref("scanner").remove();
+db.ref("scannerLock").remove();
+db.ref("favorites").remove();
+localStorage.removeItem("rvolSettings");
+location.reload();
+
+}
+
+};
+
+async function fetchSymbols(){
+
+const res=await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo");
+const data=await res.json();
+
+symbols=data.symbols
+.filter(s=>
+s.contractType==="PERPETUAL" &&
+s.quoteAsset==="USDT" &&
+s.status==="TRADING"
+)
+.map(s=>s.symbol)
+
+}
+
+async function fetchWithTimeout(url, timeout=10000){
+
+return Promise.race([
+
+fetch(url),
+
+new Promise((_,reject)=>
+setTimeout(()=>reject(new Error("timeout")),timeout)
+)
+
+]);
+
+}
+
+async function getRVOLData(symbol, interval="15m", minRvolOverride=null){
+try{
+
+const res=await fetchWithTimeout(
+`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=202`,10000);
+
+const data=await res.json();
+if(!Array.isArray(data)) return null;
+
+// avg
+let vols=data.slice(0,200).map(x=>parseFloat(x[5]));
+let avg=vols.reduce((a,b)=>a+b,0)/200;
+
+// last candles
+let closedVol=parseFloat(data[200][5]);
+let liveVol=parseFloat(data[201][5]);
+
+let rvol_closed=closedVol/avg;
+let rvol_live=liveVol/avg;
+
+// ? custom min rvol
+let minR = minRvolOverride || settings.minRvol;
+
+if(rvol_closed >= minR || rvol_live >= minR){
+
+if(rvol_live >= minR){
+return Math.floor(rvol_live);
+}else{
+return Math.floor(rvol_closed);
+}
+
+}
+
+return null;
+
+}catch{
+return null;
+}
+}
+
+
+async function scan(){
+
+document.getElementById("updateText").innerText="Scanning...";
+
+const batchSize=50;
+const delay=10000;
+
+for(let i=0;i<symbols.length;i+=batchSize){
+
+document.getElementById("updateText").innerText =
+"Scanning: " + i + " / " + symbols.length;
+
+let batch=symbols.slice(i,i+batchSize);
+
+let promises=batch.map(s=>getRVOLData(s).then(r=>({s,r})));
+
+let results=await Promise.all(promises);
+
+for(let item of results){
+
+if(item.r){
+
+let isNew = !highRvolSymbols[item.s];
+
+// 🔔 sound only if new symbol
+if(isNew && settings.sound && isMasterScanner){
+let now = Date.now();
+if(now - lastSoundTime > 2000){
+const sound=document.getElementById("alertSound");
+sound.currentTime=0;
+sound.play();
+lastFavSoundTime = now;
+}
+
+}
+
+// 📊 update or add symbol
+highRvolSymbols = {
+[item.s]:{
+time:Date.now(),
+rvol: item.r
+},
+...Object.fromEntries(
+Object.entries(highRvolSymbols)
+.filter(([k]) => k !== item.s)
+)
+};
+
+// ⚡ save + render only if new OR updated
+saveList();
+render();
+
+}
+}
+
+if(i+batchSize<symbols.length){
+await new Promise(r=>setTimeout(r,delay));
+}
+
+}
+
+document.getElementById("updateText").innerText=
+"Done: "+new Date().toLocaleTimeString();
+
+}
+
+// ? FAVORITE SCAN (1m + RVOL 10)
+async function scanFavorites(){
+
+if(favorites.length === 0){
+setFavoriteStatus("Idle");
+return;
+}
+
+let total = favorites.length;
+let count = 0;
+
+for(let s of favorites){
+
+// ?? status update
+count++;
+setFavoriteStatus(count + "/" + total);
+
+let r = await getRVOLData(s,"1m",10);
+
+if(r){
+
+let isNew = !highRvolSymbols[s];
+
+// ?? FAVORITE SOUND
+if(isNew && settings.favSound){
+let now = Date.now();
+if(now - lastFavSoundTime > 2000){
+const sound=document.getElementById("favAlertSound");
+sound.currentTime=0;
+sound.play();
+lastFavSoundTime = now;
+}
+}
+
+// update
+highRvolSymbols = {
+[s]:{
+time:Date.now(),
+rvol:r
+},
+...Object.fromEntries(
+Object.entries(highRvolSymbols)
+.filter(([k]) => k !== s)
+)
+};
+
+saveList();
+render();
+
+}
+
+}
+
+// ? done
+setFavoriteStatus("Done");
+
+}
+
+
+// ? FAVORITE STATUS FUNCTION
+function setFavoriteStatus(status){
+
+const el = document.getElementById("favStatusText");
+if(el){
+el.innerText = status;
+}
+
+}
+
+// ? ALWAYS RUNNING FAVORITE LOOP
+async function favoriteLoop(){
+
+while(true){
+
+try{
+
+
+await scanFavorites();
+
+}catch(e){
+
+console.log("FAV SCAN ERROR:",e);
+
+}
+
+// ?? ?? 10 sec
+await new Promise(r=>setTimeout(r,10000));
+
+}
+
+}
+
+let sortDirection = -1; // newest first default
+let currentSort = "time";
+
+
+function sortList(type){
+
+currentSort = type;
+
+let entries = Object.entries(highRvolSymbols);
+
+if(type==="symbol"){
+entries.sort((a,b)=>a[0].localeCompare(b[0]) * sortDirection);
+}
+
+if(type==="time"){
+entries.sort((a,b)=>(a[1].time - b[1].time) * sortDirection);
+}
+
+if(type==="rvol"){
+entries.sort((a,b)=>(a[1].rvol - b[1].rvol) * sortDirection);
+}
+
+sortDirection *= -1;
+
+highRvolSymbols = Object.fromEntries(entries);
+
+render();
+
+}
+function render(){
+
+const tbody=document.getElementById("body");
+tbody.innerHTML="";
+
+let entries = Object.entries(highRvolSymbols);
+
+// newest first (latest date top)
+if(currentSort==="symbol"){
+entries.sort((a,b)=>a[0].localeCompare(b[0]) * sortDirection);
+}
+
+if(currentSort==="time"){
+entries.sort((a,b)=>(a[1].time - b[1].time) * sortDirection);
+}
+
+if(currentSort==="rvol"){
+entries.sort((a,b)=>(a[1].rvol - b[1].rvol) * sortDirection);
+}
+
+sortedKeys = entries.map(e => e[0]);
+selectedIndex = sortedKeys.indexOf(selectedSymbol);
+
+// ===== FAVORITES SECTION =====
+if(favorites.length){
+
+createSection("? Favorites (<span id='favStatusText'>Idle</span>)");
+
+entries
+.filter(([s]) => favorites.includes(s))
+.forEach(([s]) => createRow(s));
+
+createDivider();
+}
+
+// ===== NORMAL LIST =====
+createSection("All Signals");
+
+entries
+.filter(([s]) => !favorites.includes(s))
+.forEach(([s]) => createRow(s));
+}
+
+function createRow(s){
+
+let row=document.createElement("tr");
+
+// ⭐ Favorite row highlight
+if(favorites.includes(s)){
+row.classList.add("favoriteRow");
+}
+
+if(selectedSymbol===s)
+row.classList.add("selected");
+
+row.innerHTML=`
+<td>${s}</td>
+
+<td>${formatTime(highRvolSymbols[s].time)}</td>
+<td>${highRvolSymbols[s].rvol}</td>
+`;
+
+row.onclick=()=>{
+hideMenu();   
+
+selectedSymbol=s;
+changeChartSymbol(s);
+render();
+};
+
+row.oncontextmenu=(e)=>{
+e.preventDefault();
+
+hideMenu();
+
+contextSymbol = s;
+
+const menu = document.getElementById("contextMenu");
+
+menu.style.display = "block";
+menu.style.visibility = "hidden";
+
+
+const menuWidth = menu.offsetWidth;
+const menuHeight = menu.offsetHeight;
+
+
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
+
+
+let left = e.clientX;
+let top = e.clientY;
+
+
+if(left + menuWidth > screenWidth){
+left = screenWidth - menuWidth - 5;
+}
+
+
+if(top + menuHeight > screenHeight){
+top = screenHeight - menuHeight - 5;
+}
+
+
+if(left < 5){
+left = 5;
+}
+
+if(top < 5){
+top = 5;
+}
+
+menu.style.left = left + "px";
+menu.style.top = top + "px";
+
+menu.style.visibility = "visible";
+};	
+document.getElementById("body").appendChild(row);
+
+}
+
+function createSection(title){
+
+let tr = document.createElement("tr");
+tr.className = "sectionHeader";
+tr.innerHTML = `<td colspan="3">${title}</td>`;
+document.getElementById("body").appendChild(tr);
+
+}
+
+function createDivider(){
+
+let tr = document.createElement("tr");
+tr.className = "dividerRow";
+tr.innerHTML = `<td colspan="3"></td>`;
+document.getElementById("body").appendChild(tr);
+
+}
+
+document.addEventListener("keydown",(e)=>{
+
+let keys = sortedKeys;
+
+if(e.key==="ArrowDown"){
+
+selectedIndex++;
+
+if(selectedIndex >= keys.length)
+selectedIndex = keys.length-1;
+
+selectedSymbol = keys[selectedIndex];
+changeChartSymbol(selectedSymbol);
+render();
+
+}
+
+if(e.key==="ArrowUp"){
+
+selectedIndex--;
+
+if(selectedIndex < 0)
+selectedIndex = 0;
+
+selectedSymbol = keys[selectedIndex];
+changeChartSymbol(selectedSymbol);
+render();
+
+}
+
+});
+
+document.getElementById("openTVOption").onclick=()=>{
+
+if(contextSymbol){
+
+const url="https://in.tradingview.com/chart/?symbol=BINANCE:"+contextSymbol+".P";
+
+window.open(url,"_blank");
+
+}
+
+hideMenu();
+
+};
+
+document.getElementById("copyOption").onclick=()=>{
+
+if(contextSymbol){
+
+navigator.clipboard.writeText(contextSymbol);
+
+}
+
+hideMenu();
+
+};
+
+document.getElementById("favOption").onclick=()=>{
+
+if(contextSymbol){
+
+if(favorites.includes(contextSymbol)){
+favorites = favorites.filter(s=>s!==contextSymbol);
+}else{
+favorites.push(contextSymbol);
+}
+
+db.ref("favorites").set(favorites);
+
+}
+
+hideMenu();
+};
+
+document.getElementById("deleteOption").onclick=()=>{
+
+if(contextSymbol){
+
+if(confirm("Delete "+contextSymbol+" ?")){
+
+delete highRvolSymbols[contextSymbol];
+
+saveList();
+
+render();
+
+}
+
+}
+
+hideMenu();
+
+};
+
+function hideMenu(){
+
+document.getElementById("contextMenu").style.display="none";
+
+}
+
+window.addEventListener("blur", ()=>{
+hideMenu();
+});
+
+
+document.addEventListener("click",(e)=>{
+
+if(!e.target.closest("#settingsPopup") && !e.target.closest("#settingsBtn"))
+document.getElementById("settingsPopup").style.display="none";
+
+if(!e.target.closest("#contextMenu")){
+hideMenu();
+}
+
+});
+
+function initChart(){
+
+widget=new TradingView.widget({
+container_id:"chart",
+symbol:"BINANCE:BTCUSDT.P",
+interval:"15",
+autosize:true,
+theme:currentTheme,
+style:"1",
+locale:"en",
+timezone:"Asia/Kolkata",
+toolbar_bg:"#f1f3f6",
+enable_publishing:false,
+save_image:true,
+
+allow_symbol_change:true,
+hide_side_toolbar:false,
+withdateranges:false,
+details:false,
+hotlist:false,
+calendar:false,
+
+studies:["Volume@tv-basicstudies"],
+studies_overrides:{
+"volume.volume.transparency":0
+}
+
+});
+
+}
+
+function changeChartSymbol(symbol){
+
+if(widget){
+try{ widget.remove(); } catch(e){}
+}
+
+document.getElementById("chart").innerHTML="";
+
+widget=new TradingView.widget({
+
+container_id:"chart",
+symbol:"BINANCE:"+symbol+".P",
+interval:"15",
+autosize:true,
+theme:currentTheme,
+style:"1",
+locale:"en",
+timezone:"Asia/Kolkata",
+toolbar_bg:"#f1f3f6",
+enable_publishing:false,
+save_image:true,
+
+allow_symbol_change:true,
+hide_side_toolbar:false,
+withdateranges:false,
+details:false,
+hotlist:false,
+calendar:false,
+
+studies:["Volume@tv-basicstudies"],
+studies_overrides:{
+"volume.volume.transparency":0
+}
+
+});
+
+}
+
+
+function initResize(){
+
+const divider = document.getElementById("divider");
+const left = document.querySelector(".left");
+
+const savedWidth = localStorage.getItem("leftWidthPercent");
+if(savedWidth){
+left.style.width = savedWidth + "%";
+}
+
+
+divider.addEventListener("touchstart", ()=>{
+isDragging = true;
+divider.classList.add("active");
+});
+
+document.addEventListener("touchmove",(e)=>{
+if(!isDragging) return;
+
+e.preventDefault(); // 🔥 IMPORTANT FIX
+
+let touch = e.touches[0];
+
+lastPercent = (touch.clientX / window.innerWidth) * 100;
+
+// limit
+if(lastPercent < 8) lastPercent = 8;
+if(lastPercent > 50) lastPercent = 50;
+
+if(!animationFrameId){
+animationFrameId = requestAnimationFrame(()=>{
+left.style.width = lastPercent + "%";
+animationFrameId = null;
+});
+}
+});
+
+
+document.addEventListener("touchend", ()=>{
+if(isDragging){
+localStorage.setItem("leftWidthPercent", lastPercent);
+}
+
+isDragging = false;
+divider.classList.remove("active");
+});
+
+divider.addEventListener("mousedown", ()=>{
+isDragging = true;
+divider.classList.add("active");
+});
+
+document.addEventListener("mousemove",(e)=>{
+if(!isDragging) return;
+
+lastPercent = (e.clientX / window.innerWidth) * 100;
+
+
+if(lastPercent < 8) lastPercent = 8;
+if(lastPercent > 50) lastPercent = 50;
+
+
+if(!animationFrameId){
+animationFrameId = requestAnimationFrame(()=>{
+
+left.style.width = lastPercent + "%";
+
+animationFrameId = null;
+
+});
+}
+});
+
+document.addEventListener("mouseup", ()=>{
+if(isDragging){
+
+localStorage.setItem("leftWidthPercent", lastPercent);
+
+}
+
+isDragging = false;
+divider.classList.remove("active");
+});
+
+}
+
+function toggleTheme(){
+
+currentTheme=currentTheme==="light"?"dark":"light";
+
+if(selectedSymbol)
+changeChartSymbol(selectedSymbol);
+else
+changeChartSymbol("BTCUSDT");
+
+}
+
+async function scannerLoop(){
+
+while(true){
+
+try{
+
+await scan();
+
+}catch(e){
+
+console.log("SCAN ERROR:",e);
+
+}
+
+await new Promise(r=>setTimeout(r,300000)); // 5 min
+
+}
+
+}
+
+async function init(){
+
+await loadList();
+
+await checkScannerLock();
+
+document.getElementById("soundToggle").checked = settings.sound;
+document.getElementById("favSoundToggle").checked = settings.favSound;
+
+document.getElementById("minRvolInput").value=settings.minRvol;
+
+render();
+
+await fetchSymbols();
+
+initChart();
+
+initResize();
+
+if(isMasterScanner){
+
+enableWakeLock();
+
+scannerLoop();     // main scan
+favoriteLoop();    // ? always running
+
+}
+
+}
+
+init();
+
+// ===== SETTINGS MODAL LOGIC =====
+
+// OPEN
+document.getElementById("settingsBtn").onclick=()=>{
+const pop=document.getElementById("settingsPopup");
+
+pop.style.display="block";
+
+document.getElementById("minRvolInput").value=settings.minRvol;
+document.getElementById("soundToggle").checked=settings.sound;
+document.getElementById("favSoundToggle").checked=settings.favSound;
+};
+
+// SAVE
+document.getElementById("saveSettingsBtn").onclick=()=>{
+settings.minRvol = Math.max(1, parseInt(document.getElementById("minRvolInput").value) || 15);
+settings.sound = document.getElementById("soundToggle").checked;
+settings.favSound = document.getElementById("favSoundToggle").checked;
+
+saveSettings();
+document.getElementById("settingsPopup").style.display="none";
+};
+
+// CANCEL
+document.getElementById("cancelSettings").onclick=()=>{
+document.getElementById("settingsPopup").style.display="none";
+};
+
+// CLOSE (X)
+document.getElementById("closeSettings").onclick=()=>{
+document.getElementById("settingsPopup").style.display="none";
+};
+
+
+/* TAB ACTIVE KEEP HACK */
+
+setInterval(()=>{
+
+console.log("Scanner Alive", new Date().toLocaleTimeString());
+
+},60000);
+
+window.addEventListener("beforeunload",()=>{
+
+if(isMasterScanner){
+
+db.ref("scannerLock").remove();
+
+}
+
+});
+
+
+</script>
+
+</body>
+</html>
+
+
