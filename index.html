@@ -53,7 +53,7 @@ box-shadow:0 0 10px #00CFFF;
 table{
 width:100%;
 border-collapse:collapse;
-table-layout:fixed;
+table-layout:auto;   /* 🔥 CHANGE */
 }
 
 thead th{
@@ -69,10 +69,10 @@ th,td{
 padding:5px 6px;  /* top-bottom 4px, left-right 6px */
 border-bottom:1px solid #0A374A;
 font-size:12px;
-white-space:nowrap;
+white-space:nowrap;   /* ✅ single line */
 
-overflow:hidden;
-text-overflow:ellipsis;
+overflow:hidden;    /* ✅ cut */
+text-overflow:ellipsis;  /* ✅ ... */
 }
 
 
@@ -89,6 +89,17 @@ user-select:none;
 
 .selected{
 background:#6BB1F2;
+}
+
+/* 🔥 SPECIAL HIT PRIORITY */
+tr.specialHit{
+background:#00ff00 !important;
+color:#000;
+font-weight:bold;
+}
+
+tr.specialHit.selected{
+background:#00ff00 !important;
 }
 
 
@@ -202,6 +213,21 @@ overflow:hidden;
 z-index:2000;
 }
 
+#specialPopup{
+position:fixed;
+display:none;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#ffffff;
+border-radius:8px;
+box-shadow:0 6px 20px rgba(0,0,0,0.3);
+width:300px;
+overflow:hidden;
+z-index:3000;
+}
+
+
 /* Header */
 .settingsHeader{
 background:#0A374A;
@@ -231,6 +257,55 @@ font-size:14px;
 width:80px;
 padding:5px;
 font-size:14px;
+}
+
+
+/* 🔥 INPUT BOX */
+.inputBox{
+width:100px;
+padding:6px;
+border-radius:5px;
+border:1px solid #ccc;
+font-size:14px;
+outline:none;
+}
+
+.inputBox:focus{
+border-color:#1E90FF;
+box-shadow:0 0 4px #1E90FF;
+}
+
+/* 🔥 SELECT BOX (TIMEFRAME + UNIT) */
+.selectBox{
+padding:6px 10px;
+border-radius:5px;
+border:1px solid #ccc;
+font-size:14px;
+cursor:pointer;
+background:white;
+outline:none;
+}
+
+.selectBox:hover{
+border-color:#1E90FF;
+}
+
+.selectBox:focus{
+border-color:#1E90FF;
+box-shadow:0 0 4px #1E90FF;
+}
+
+/* 🔥 SMALL (K/M) */
+.selectBox.small{
+padding:6px;
+min-width:60px;
+}
+
+/* 🔥 VOLUME ALIGN */
+.volumeBox{
+display:flex;
+gap:6px;
+align-items:center;
 }
 
 .resetBtn{
@@ -301,6 +376,10 @@ user-select:none;
 </select>
 
 <button id="settingsBtn">⚙️</button>
+
+<!-- NEW BUTTON -->
+<button onclick="toggleList()" style="font-size:12px;">📊</button>
+
 </div>
 
 <div class="tableWrapper">
@@ -308,10 +387,10 @@ user-select:none;
 <table>
 <thead>
 <tr>
-<th style="width:40%" onclick="sortList('symbol')">Symbol</th>
-<th style="width:15%" onclick="sortList('time')">Time</th>
-<th style="width:15%" onclick="sortList('rvol')">RVOL</th>
-<th style="width:30%" onclick="sortList('value')">Value Cr</th>
+<th onclick="sortList('symbol')">Symbol</th>
+<th onclick="sortList('time')">Time</th>
+<th onclick="sortList('rvol')">RVOL</th>
+<th onclick="sortList('value')">Value Cr</th>
 </tr>
 </thead>
 <tbody id="body"></tbody>
@@ -428,49 +507,95 @@ white-space:nowrap;">
 
 <!-- SPECIAL SCAN POPUP -->
 
-<div id="specialPopup" style="
-position:fixed;
-display:none;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:white;
-border-radius:8px;
-box-shadow:0 6px 20px rgba(0,0,0,0.3);
-width:280px;
-z-index:3000;
-">
+<div id="specialPopup">
 
-<div style="background:#0A374A;color:white;padding:10px;">
-Special Scan
+<div class="settingsHeader">
+<span>⚡ Special Scan</span>
+<span id="closeSpecialPopup" style="cursor:pointer;">✖</span>
 </div>
 
-<div style="padding:15px;">
+<div class="settingsBody">
 
-<div style="margin-bottom:10px;">
-Volume >
-<input id="specialVolume" type="number" style="width:80px;">
-<select id="specialUnit">
+<div class="settingRow">
+<label>Volume > </label>
+<div class="volumeBox">
+<input id="specialVolume" type="number" class="inputBox">
+<select id="specialUnit" class="selectBox small">
 <option value="K">K</option>
 <option value="M">M</option>
 </select>
 </div>
-
-<div style="margin-bottom:10px;">
-Scan Interval (sec)
-<input id="specialInterval" type="number" value="1">
 </div>
 
-<button id="saveSpecialScan">Save Setting and Start Scanning</button>
+<div class="settingRow">
+<label>Scan Interval (Every secound )</label>
+<input id="specialInterval" type="number" value="2">
+</div>
 
+<div class="settingRow">
+<label>Timeframe</label>
+<select id="specialTf" class="selectBox">
+<option value="1m" selected>1m</option>
+<option value="3m">3m</option>
+<option value="5m">5m</option>
+<option value="15m">15m</option>
+</select>
 </div>
 
 </div>
 
+<div class="settingsFooter">
+<button id="cancelSpecialScan">Cancel</button>
+<button id="saveSpecialScan">Save</button>
+</div>
+
+</div>
 
 <audio id="alertSound">
+<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
+
+<audio id="specialAlertSound">
 <source src="https://actions.google.com/sounds/v1/cartoon/tympani_bing.ogg">
 </audio>
+
+<!-- SPECIAL HIT POPUP -->
+<div id="specialHitPopup" style="
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+border-radius:10px;
+box-shadow:0 8px 25px rgba(0,0,0,0.4);
+padding:20px;
+width:260px;
+text-align:center;
+z-index:5000;
+display:none;
+">
+
+<div id="specialHitText" style="
+font-size:18px;
+font-weight:bold;
+margin-bottom:15px;
+color:#0A374A;
+">
+SYMBOL
+</div>
+
+<button id="specialHitOkBtn" style="
+padding:8px 20px;
+background:#0A374A;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+">
+OK
+</button>
+
+</div>
 
 <script>
 
@@ -508,8 +633,16 @@ breakoutCandles:0
 	
 let favorites = [];
 let lastSoundTime = 0;
+let scannerRunning = true;
+let specialScannerRunning = true;
 
 let ignoreList = JSON.parse(localStorage.getItem("ignoreList") || "{}");
+
+
+// ===== BINANCE LIST MODE =====
+let binanceList = [];
+let currentMode = "main"; // main / binance
+
 
 // ===== SPECIAL SCAN =====
 let specialSymbols = JSON.parse(localStorage.getItem("specialScanSymbols") || "{}");
@@ -605,24 +738,93 @@ const mins = String(d.getMinutes()).padStart(2,'0');
 return `${hours}:${mins}`;
 }
 
-	
-document.getElementById("resetBtn").onclick = async ()=>{
-
-if(!confirm("Reset Scanner ? All saved data will be cleared.")) return;
-
+// ===== BINANCE LIST LOAD =====
+async function loadBinanceList(){
 try{
 
-// 🔥 clear local storage
-localStorage.clear();
+const res = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr");
+const data = await res.json();
+
+binanceList = data
+.filter(d => d.symbol.endsWith("USDT"))
+.map(d => ({
+symbol: d.symbol,
+change: parseFloat(d.priceChangePercent).toFixed(2)
+}));
+
+console.log("Binance List Loaded:", binanceList.length);
 
 }catch(e){
-
-console.log("Reset error:",e);
-
+console.log("Binance List Error:", e);
+}
 }
 
-// 🔄 reload scanner
+	
+document.getElementById("resetBtn").onclick = ()=>{
+
+if(!confirm("FULL RESET? All scanner memory will be cleared.")) return;
+
+hideMenu();
+document.getElementById("settingsPopup").style.display = "none";
+document.getElementById("specialPopup").style.display = "none";
+document.getElementById("specialHitPopup").style.display = "none";
+
+
+// 🔥 STOP LOOPS
+scannerRunning = false;
+specialScannerRunning = false;
+
+// 🔥 CLEAR ALL RUNTIME DATA
+highRvolSymbols = {};
+specialSymbols = {};
+favorites = [];
+ignoreList = {};
+binanceList = [];
+specialLastSound = {};
+selectedSymbol = null;
+contextSymbol = null;
+lastClickedSymbol = "";
+
+// 🔥 RESET SPECIAL STATE
+specialScanState = {
+currentIndex:0,
+lastAlert:{}
+};
+
+// 🔥 CLEAR STORAGE
+localStorage.clear();
+
+// 🔥 stop loops first
+scannerRunning = false;
+specialScannerRunning = false;
+
+// 🔥 CLEAR TABLE UI
+document.getElementById("body").innerHTML = "";
+
+// 🔥 RESET CHART
+if(widget){
+try{ widget.remove(); }catch(e){}
+document.getElementById("chart").innerHTML = "";
+}
+
+// 🔥 RESTART ENGINE CLEANLY
+setTimeout(()=>{
+
+scannerRunning = true;
+specialScannerRunning = true;
+
+scannerLoop();
+specialScanLoop();
+
+// 🔥 FINAL STEP: reload after everything
 location.reload();
+
+}, 1000);
+
+// 🔥 REFRESH SYMBOL LIST
+fetchSymbols().then(()=>{
+render();
+});
 
 };
 
@@ -766,7 +968,7 @@ const delay=8000;
 for(let i=0;i<symbols.length;i+=batchSize){
 
 document.getElementById("updateText").innerText =
-"Scanning: " + i + " / " + symbols.length;
+"" + i + " / " + symbols.length;
 
 let batch=symbols.slice(i,i+batchSize);
 
@@ -785,6 +987,11 @@ continue;
 delete ignoreList[item.s];
 localStorage.setItem("ignoreList", JSON.stringify(ignoreList));
 }
+}
+
+// 🚫 SKIP if in special scan
+if(specialSymbols[item.s]){
+continue;
 }
 
 if(highRvolSymbols[item.s]){
@@ -833,6 +1040,8 @@ document.getElementById("updateText").innerText=
 let sortDirection = -1; // newest first default
 let currentSort = "time";
 
+let binanceSortDirection = -1; // NEW
+
 
 function sortList(type){
 
@@ -862,10 +1071,104 @@ highRvolSymbols = Object.fromEntries(entries);
 render();
 
 }
+
+// ===== BINANCE SORT =====
+function sortBinance(type){
+
+if(type === "symbol"){
+binanceList.sort((a,b)=>
+a.symbol.localeCompare(b.symbol) * binanceSortDirection
+);
+}
+
+if(type === "change"){
+binanceList.sort((a,b)=>
+(parseFloat(a.change) - parseFloat(b.change)) * binanceSortDirection
+);
+}
+
+binanceSortDirection *= -1;
+
+// 🔥 selectedIndex FIX after sort
+let keys = binanceList.map(d => d.symbol);
+selectedIndex = keys.indexOf(selectedSymbol);
+if(selectedIndex < 0) selectedIndex = 0;
+
+render();
+}
+
 function render(){
 
 const tbody=document.getElementById("body");
+const thead = document.querySelector("thead"); // NEW
+
 tbody.innerHTML="";
+
+// ===== BINANCE MODE =====
+if(currentMode === "binance"){
+
+// sync selectedIndex
+let keys = binanceList.map(d => d.symbol);
+selectedIndex = keys.indexOf(selectedSymbol);
+if(selectedIndex < 0) selectedIndex = 0;
+
+thead.innerHTML = `
+<tr>
+<th style="width:50%" onclick="sortBinance('symbol')">Symbol</th>
+<th style="width:50%" onclick="sortBinance('change')">Change %</th>
+</tr>
+`;
+
+binanceList.forEach((d,index)=>{
+let row = document.createElement("tr");
+const rowHeight = settings.rowHeight || 30;
+row.style.height = rowHeight + "px";
+row.style.fontSize = "12px";
+row.style.userSelect = "none";
+
+row.dataset.symbol = d.symbol;
+
+// highlight selected
+if(selectedSymbol === d.symbol){
+row.classList.add("selected");
+}
+
+row.innerHTML = `
+<td>${d.symbol}</td>
+<td>${d.change}%</td>
+`;
+
+// CLICK → chart open
+row.onclick = ()=>{
+
+selectedSymbol = d.symbol;
+lastClickedSymbol = d.symbol;
+selectedIndex = index;
+
+changeChartSymbol(d.symbol);
+render();
+
+document.getElementById("tradeInfo").innerHTML =
+'<button id="calcQtyBtn">Calculate Qty</button>';
+
+bindQtyButton();
+};
+
+tbody.appendChild(row);
+});
+
+return; // STOP further rendering
+}
+
+// ===== MAIN MODE HEADER RESET =====
+thead.innerHTML = `
+<tr>
+<th onclick="sortList('symbol')">Symbol</th>
+<th onclick="sortList('time')">Time</th>
+<th onclick="sortList('rvol')">RVOL</th>
+<th onclick="sortList('value')">Value Cr</th>
+</tr>
+`;
 
 let entries = Object.entries(highRvolSymbols);
 
@@ -914,7 +1217,7 @@ if(favorites.length){
 createSection("⭐ Favorites");
 
 entries
-.filter(([s]) => favorites.includes(s))
+.filter(([s]) => favorites.includes(s) && !specialSymbols[s])
 .forEach(([s]) => createRow(s));
 
 createDivider();
@@ -924,7 +1227,7 @@ createDivider();
 createSection("All Signals");
 
 entries
-.filter(([s]) => !favorites.includes(s))
+.filter(([s]) => !favorites.includes(s) && !specialSymbols[s])
 .forEach(([s]) => createRow(s));
 }
 
@@ -936,6 +1239,27 @@ row.dataset.symbol = s;
 const rowHeight = settings.rowHeight || 30;
 row.style.height = rowHeight + "px";
 
+// 🔥 SHOW SPECIAL SETTINGS ON HOVER
+if(specialSymbols[s]){
+let sp = specialSymbols[s];
+
+let volText = sp.volume;
+
+if(volText >= 1000000){
+volText = (volText/1000000) + "M";
+}else if(volText >= 1000){
+volText = (volText/1000) + "K";
+}
+
+row.title =
+"Special Scan\n" +
+"Volume: " + volText + "\n" +
+"Interval: " + sp.interval + "s\n" +
+"TF: " + (sp.tf || "1m");
+}
+
+
+
 // ⭐ Favorite row highlight
 if(favorites.includes(s)){
 row.classList.add("favoriteRow");
@@ -943,6 +1267,11 @@ row.classList.add("favoriteRow");
 
 if(selectedSymbol===s)
 row.classList.add("selected");
+
+// 🔥 SPECIAL HIT PERSIST (IMPORTANT)
+if(specialSymbols[s] && specialSymbols[s].hit){
+row.classList.add("specialHit");
+}
 
 row.innerHTML=`
 <td>${s}</td>
@@ -1043,6 +1372,43 @@ document.getElementById("body").appendChild(tr);
 
 document.addEventListener("keydown",(e)=>{
 
+// ===== BINANCE MODE =====
+if(currentMode === "binance"){
+
+let keys = binanceList.map(d => d.symbol);
+
+if(e.key==="ArrowDown"){
+
+selectedIndex++;
+
+if(selectedIndex >= keys.length)
+selectedIndex = keys.length-1;
+
+selectedSymbol = keys[selectedIndex];
+lastClickedSymbol = selectedSymbol;
+
+changeChartSymbol(selectedSymbol);
+render();
+}
+
+if(e.key==="ArrowUp"){
+
+selectedIndex--;
+
+if(selectedIndex < 0)
+selectedIndex = 0;
+
+selectedSymbol = keys[selectedIndex];
+lastClickedSymbol = selectedSymbol;
+
+changeChartSymbol(selectedSymbol);
+render();
+}
+
+return; // 🔥 STOP main logic
+}
+
+// ===== MAIN MODE =====
 let keys = sortedKeys;
 
 if(e.key==="ArrowDown"){
@@ -1138,14 +1504,30 @@ if(!contextSymbol) return;
 
 if(specialSymbols[contextSymbol]){
 
-// disable special scan
+// 🔥 REMOVE FROM SPECIAL
 delete specialSymbols[contextSymbol];
 
 localStorage.setItem("specialScanSymbols", JSON.stringify(specialSymbols));
 
+// 🔥 ADD BACK TO MAIN LIST (dummy entry ताकि तुरंत दिखे)
+highRvolSymbols = {
+[contextSymbol]:{
+time:Date.now(),
+rvol: 0,
+value: 0
+},
+...highRvolSymbols
+};
+
+saveList();
 render();
 
+
 }else{
+
+// 🔥 ADD TO SPECIAL + REMOVE FROM MAIN LIST
+// ❗ अभी कुछ delete मत करो
+// सिर्फ popup खोलो
 
 document.getElementById("specialPopup").style.display="block";
 
@@ -1450,6 +1832,20 @@ changeChartSymbol("BTCUSDT");
 
 }
 
+// ===== TOGGLE LIST =====
+function toggleList(){
+
+if(currentMode === "main"){
+currentMode = "binance";
+document.querySelector('[onclick="toggleList()"]').innerText = "📈";
+}else{
+currentMode = "main";
+document.querySelector('[onclick="toggleList()"]').innerText = "📊";
+}
+
+render();
+}
+
 function applyLayout(){
 
 const container = document.querySelector(".container");
@@ -1473,8 +1869,7 @@ container.insertBefore(divider, right);
 
 
 async function specialScanLoop(){
-
-while(true){
+while(specialScannerRunning){
 
 let keys = Object.keys(specialSymbols);
 
@@ -1482,7 +1877,13 @@ for(let s of keys){
 
 try{
 
-let url = `https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=1m&limit=2`;
+let setting = specialSymbols[s];   // ✅ पहले define करो
+
+if(!setting) continue;             // ✅ safety
+
+let tf = setting.tf || "1m";       // ✅ अब सही
+
+let url = `https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=${tf}&limit=2`;
 
 let res = await fetch(url);
 let data = await res.json();
@@ -1494,34 +1895,68 @@ let liveVol = parseFloat(data[1][5]);
 
 let maxVol = Math.max(closedVol, liveVol);
 
-let setting = specialSymbols[s];
+// 🚫 safety check
+if(!setting || !setting.volume) continue;
 
-if(maxVol >= setting.volume){
+// 🔥 FIX: skip first few seconds after adding symbol
+if(setting.createdAt && (Date.now() - setting.createdAt < 3000)){
+continue;
+}
 
+if(setting.volume && maxVol >= setting.volume){
+
+// पहली बार hit
 if(!setting.hit){
 
 specialSymbols[s].hit = true;
 
 let row = document.querySelector(`tr[data-symbol='${s}']`);
+if(row){
+row.classList.add("specialHit");
+}
 
-if(row) row.style.background = "#00ff00";
+// 🔥 CHART AUTO OPEN
+selectedSymbol = s;
+lastClickedSymbol = s;
+changeChartSymbol(s);
+
+// 🔥 POPUP SHOW
+const popup = document.getElementById("specialHitPopup");
+const text = document.getElementById("specialHitText");
+
+if(popup && text){
+text.innerText = s + " HIT 🚀";
+popup.style.display = "block";
+}
 
 }
 
+// 🔔 SOUND ONLY WHEN CONDITION TRUE
 let now = Date.now();
 
-if(!specialLastSound[s] || now - specialLastSound[s] > 10000){
+// 🔔 SOUND ONLY FIRST TIME WHEN HIT
+if(setting.hit && !specialLastSound[s]){
 
-const sound=document.getElementById("alertSound");
+const sound=document.getElementById("specialAlertSound");
+if(sound){
 sound.currentTime=0;
 sound.play().catch(()=>{});
+}
 
-specialLastSound[s]=now;
+specialLastSound[s] = 1;
 
 }
 
+}else{
+
+// ❌ अब hit reset नहीं होगा
+// सिर्फ sound reset होगा (optional)
+
+if(!specialSymbols[s].hit){
+specialLastSound[s] = 0;
 }
 
+}
 }catch(e){
 console.log("Special Scan Error",e);
 }
@@ -1543,7 +1978,7 @@ await new Promise(r=>setTimeout(r,interval));
 
 async function scannerLoop(){
 
-while(true){
+while(scannerRunning){
 
 // TAB hidden optimisation
 if(document.hidden){
@@ -1606,7 +2041,11 @@ changeChartSymbol("BTCUSDT");
 
 await fetchSymbols();
 
+// ===== NEW =====
+await loadBinanceList();
+
 initChart();
+
 
 document.getElementById("tradeInfo").innerHTML =
 '<button id="calcQtyBtn">Calculate Qty</button>';
@@ -1678,6 +2117,7 @@ document.getElementById("saveSpecialScan").onclick=()=>{
 let vol = parseFloat(document.getElementById("specialVolume").value);
 let unit = document.getElementById("specialUnit").value;
 let interval = parseInt(document.getElementById("specialInterval").value) || 1;
+let tf = document.getElementById("specialTf").value;
 
 if(unit==="K") vol = vol * 1000;
 if(unit==="M") vol = vol * 1000000;
@@ -1685,8 +2125,15 @@ if(unit==="M") vol = vol * 1000000;
 specialSymbols[contextSymbol] = {
 volume: vol,
 interval: interval,
-hit:false
+tf: tf,
+hit:false,
+
+// 🔥 NEW FIX: prevent immediate alert on add
+createdAt: Date.now()
 };
+
+specialLastSound[contextSymbol] = 0;
+
 
 localStorage.setItem("specialScanSymbols", JSON.stringify(specialSymbols));
 
@@ -1697,7 +2144,20 @@ render();
 };
 
 
-/* TAB ACTIVE KEEP HACK */
+// ===== SPECIAL HIT POPUP LOGIC =====
+document.getElementById("specialHitOkBtn").onclick = ()=>{
+document.getElementById("specialHitPopup").style.display = "none";
+};
+
+// ===== SPECIAL POPUP CLOSE =====
+document.getElementById("closeSpecialPopup").onclick=()=>{
+document.getElementById("specialPopup").style.display="none";
+};
+
+// ===== SPECIAL POPUP CANCEL =====
+document.getElementById("cancelSpecialScan").onclick=()=>{
+document.getElementById("specialPopup").style.display="none";
+};
 
 setInterval(()=>{
 
