@@ -390,7 +390,7 @@ user-select:none;
 <th onclick="sortList('symbol')">Symbol</th>
 <th onclick="sortList('time')">Time</th>
 <th onclick="sortList('rvol')">RVOL</th>
-<th onclick="sortList('value')">Value Cr</th>
+<th onclick="sortList('value')">Value Lakh</th>
 </tr>
 </thead>
 <tbody id="body"></tbody>
@@ -462,7 +462,7 @@ white-space:nowrap;">
 </div>
 
 <div class="settingRow">
-<label>Price * Volume (Min Cr)</label>
+<label>Price * Volume (Min Lakh)</label>
 <input type="number" id="minValueCrInput" step="0.01">
 </div>
 
@@ -620,7 +620,7 @@ let lastPercent = 13;
 let settings={
 sound:true,
 minRvol:15,
-minValueCr:0.00,
+minValueLakh:0.00,
 positionUSD:5.5,
 rowHeight:30,
 swapLayout:false,
@@ -934,19 +934,19 @@ let minR = settings.minRvol ?? 15;
 
 let price = parseFloat(live[4]);
 let volUsed = Math.max(liveVol, closedVol);
-let valueCr = (price * volUsed) / 10000000;
-let minValue = settings.minValueCr ?? 0.00;
+let valueLakh = (price * volUsed) / 100000;
+let minValue = settings.minValueLakh ?? 0.00;
 
 // OR condition
 let rvolPass = (rvol_closed >= minR || rvol_live >= minR);
 
-if(rvolPass && breakoutPass && valueCr >= minValue){
+if(rvolPass && breakoutPass && valueLakh >= minValue){
 
 // return jo pass kare
 if(rvol_live >= minR){
-return {r: Math.floor(rvol_live), value:valueCr};
+return {r: Math.floor(rvol_live), value:valueLakh};
 }else{
-return {r: Math.floor(rvol_closed), value:valueCr};
+return {r: Math.floor(rvol_closed), value:valueLakh};
 }
 
 }
@@ -1166,7 +1166,7 @@ thead.innerHTML = `
 <th onclick="sortList('symbol')">Symbol</th>
 <th onclick="sortList('time')">Time</th>
 <th onclick="sortList('rvol')">RVOL</th>
-<th onclick="sortList('value')">Value Cr</th>
+<th onclick="sortList('value')">Value Lakh</th>
 </tr>
 `;
 
@@ -2013,7 +2013,7 @@ currentTheme = settings.theme;
 // 🔥 APPLY ALL SAVED SETTINGS
 document.getElementById("soundToggle").checked = settings.sound ?? true;
 document.getElementById("minRvolInput").value = settings.minRvol || 15;
-document.getElementById("minValueCrInput").value = settings.minValueCr || 0.00;
+document.getElementById("minValueCrInput").value = settings.minValueLakh || 0.00;
 document.getElementById("positionUsdInput").value = settings.positionUSD || 5.5;
 document.getElementById("rowHeightInput").value = settings.rowHeight || 30;
 document.getElementById("rvolTfInput").value = settings.rvolTf ?? "15m";
@@ -2073,7 +2073,7 @@ document.getElementById("swapLayoutInput").checked = settings.swapLayout;
 pop.style.display="block";
 
 document.getElementById("minRvolInput").value = settings.minRvol;
-document.getElementById("minValueCrInput").value = settings.minValueCr;
+document.getElementById("minValueCrInput").value = settings.minValueLakh;
 document.getElementById("soundToggle").checked = settings.sound;
 document.getElementById("positionUsdInput").value = settings.positionUSD;
 document.getElementById("rowHeightInput").value = settings.rowHeight;
@@ -2086,7 +2086,7 @@ document.getElementById("breakoutCandlesInput").value = settings.breakoutCandles
 document.getElementById("saveSettingsBtn").onclick=()=>{
 
 settings.minRvol = Math.max(1, parseInt(document.getElementById("minRvolInput").value));
-settings.minValueCr = parseFloat(document.getElementById("minValueCrInput").value);
+settings.minValueLakh = parseFloat(document.getElementById("minValueCrInput").value);
 settings.sound = document.getElementById("soundToggle").checked;
 settings.positionUSD = parseFloat(document.getElementById("positionUsdInput").value);
 settings.rowHeight = Math.max(18, parseInt(document.getElementById("rowHeightInput").value));
