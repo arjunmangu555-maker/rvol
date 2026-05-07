@@ -429,6 +429,7 @@ white-space:nowrap;">
 <div id="binanceOption">🔥 Open Binance</div>
 <div id="specialOption">⚡ Special Scan</div>	
 <div id="ignoreOption">⛔ Ignore 1 Hour</div>
+<div id="addMainOption">➕ Add To Main List</div>
 <div id="deleteOption">❌ Delete</div>
 </div>
 
@@ -618,7 +619,7 @@ let animationFrameId = null;
 let lastPercent = 13;
 
 let settings={
-sound:true,
+sound:false,
 minRvol:15,
 minValueLakh:0.00,
 positionUSD:5.5,
@@ -1154,6 +1155,53 @@ document.getElementById("tradeInfo").innerHTML =
 bindQtyButton();
 };
 
+row.oncontextmenu = (e)=>{
+
+// 🔥 SHOW ONLY ADD TO MAIN LIST
+document.getElementById("openTVOption").style.display = "none";
+document.getElementById("copyOption").style.display = "none";
+document.getElementById("favOption").style.display = "none";
+document.getElementById("binanceOption").style.display = "none";
+document.getElementById("specialOption").style.display = "none";
+document.getElementById("ignoreOption").style.display = "none";
+document.getElementById("deleteOption").style.display = "none";
+
+document.getElementById("addMainOption").style.display = "block";
+
+
+e.preventDefault();
+
+contextSymbol = d.symbol;
+
+const menu = document.getElementById("contextMenu");
+
+menu.style.display = "block";
+menu.style.visibility = "hidden";
+
+const menuWidth = menu.offsetWidth;
+const menuHeight = menu.offsetHeight;
+
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
+
+let left = e.clientX;
+let top = e.clientY;
+
+if(left + menuWidth > screenWidth){
+left = screenWidth - menuWidth - 5;
+}
+
+if(top + menuHeight > screenHeight){
+top = screenHeight - menuHeight - 5;
+}
+
+menu.style.left = left + "px";
+menu.style.top = top + "px";
+
+menu.style.visibility = "visible";
+
+};
+
 tbody.appendChild(row);
 });
 
@@ -1536,6 +1584,32 @@ document.getElementById("specialPopup").style.display="block";
 hideMenu();
 
 };
+
+document.getElementById("addMainOption").onclick=()=>{
+
+if(contextSymbol){
+
+if(!highRvolSymbols[contextSymbol]){
+
+highRvolSymbols = {
+[contextSymbol]:{
+time:Date.now(),
+rvol:0,
+value:0
+},
+...highRvolSymbols
+};
+
+saveList();
+render();
+
+}
+
+}
+
+hideMenu();
+
+};
 	
 document.getElementById("deleteOption").onclick=()=>{
 
@@ -1575,6 +1649,17 @@ hideMenu();
 function hideMenu(){
 
 document.getElementById("contextMenu").style.display="none";
+
+// 🔥 RESET MENU ITEMS
+document.getElementById("openTVOption").style.display = "block";
+document.getElementById("copyOption").style.display = "block";
+document.getElementById("favOption").style.display = "block";
+document.getElementById("binanceOption").style.display = "block";
+document.getElementById("specialOption").style.display = "block";
+document.getElementById("ignoreOption").style.display = "block";
+document.getElementById("deleteOption").style.display = "block";
+
+document.getElementById("addMainOption").style.display = "none";
 
 }
 
