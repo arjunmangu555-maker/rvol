@@ -362,6 +362,7 @@ user-select:none;
 
 <div id="status">
 <span id="updateText">Starting...</span>
+<button id="scannerBtn">⏸</button>
 <button id="themeBtn" onclick="toggleTheme()">☀️</button>
 
 <select id="timeframeSelect" style="font-size:15px;">
@@ -967,6 +968,9 @@ const batchSize=50;
 const delay=20000;
 
 for(let i=0;i<symbols.length;i+=batchSize){
+if(!scannerRunning){
+return;
+}
 
 document.getElementById("updateText").innerText =
 "" + i + " / " + symbols.length;
@@ -2242,6 +2246,32 @@ document.getElementById("specialPopup").style.display="none";
 // ===== SPECIAL POPUP CANCEL =====
 document.getElementById("cancelSpecialScan").onclick=()=>{
 document.getElementById("specialPopup").style.display="none";
+};
+
+document.getElementById("scannerBtn").onclick = ()=>{
+
+if(scannerRunning){
+
+scannerRunning = false;
+
+document.getElementById("scannerBtn").innerText = "▶";
+
+document.getElementById("updateText").innerText =
+"Scanner Paused";
+
+}else{
+
+scannerRunning = true;
+
+document.getElementById("scannerBtn").innerText = "⏸";
+
+document.getElementById("updateText").innerText =
+"Scanner Running";
+
+scannerLoop();
+
+}
+
 };
 
 setInterval(()=>{
